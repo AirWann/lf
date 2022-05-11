@@ -1,6 +1,6 @@
 %option noyywrap
-
-DIG	[0-9]
+/* 
+DIG	[0-9] */
 
 %%
 
@@ -25,4 +25,3 @@ DIG	[0-9]
 .	{ return *yytext; }
 
 %%
-
