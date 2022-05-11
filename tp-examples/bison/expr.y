@@ -17,6 +17,8 @@ void yyerror(char *s)
 
 %token <i> INT
 %type <i> E
+%left '+'
+%left '*'
 
 %%
 

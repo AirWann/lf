@@ -1,0 +1,145 @@
+Grammaire
+
+    0 $accept: S $end
+
+    1 S: E
+
+    2 E: E '*' E
+    3  | E '+' E
+    4  | '(' E ')'
+    5  | INT
+
+
+Terminaux, suivis des règles où ils apparaissent
+
+    $end (0) 0
+    '(' (40) 4
+    ')' (41) 4
+    '*' (42) 2
+    '+' (43) 3
+    error (256)
+    INT <i> (258) 5
+
+
+Non-terminaux, suivis des règles où ils apparaissent
+
+    $accept (8)
+        à gauche: 0
+    S (9)
+        à gauche: 1
+        à droite: 0
+    E <i> (10)
+        à gauche: 2 3 4 5
+        à droite: 1 2 3 4
+
+
+État 0
+
+    0 $accept: . S $end
+
+    INT  décalage et aller à l'état 1
+    '('  décalage et aller à l'état 2
+
+    S  aller à l'état 3
+    E  aller à l'état 4
+
+
+État 1
+
+    5 E: INT .
+
+    $défaut  réduction par utilisation de la règle 5 (E)
+
+
+État 2
+
+    4 E: '(' . E ')'
+
+    INT  décalage et aller à l'état 1
+    '('  décalage et aller à l'état 2
+
+    E  aller à l'état 5
+
+
+État 3
+
+    0 $accept: S . $end
+
+    $end  décalage et aller à l'état 6
+
+
+État 4
+
+    1 S: E .
+    2 E: E . '*' E
+    3  | E . '+' E
+
+    '+'  décalage et aller à l'état 7
+    '*'  décalage et aller à l'état 8
+
+    $défaut  réduction par utilisation de la règle 1 (S)
+
+
+État 5
+
+    2 E: E . '*' E
+    3  | E . '+' E
+    4  | '(' E . ')'
+
+    '+'  décalage et aller à l'état 7
+    '*'  décalage et aller à l'état 8
+    ')'  décalage et aller à l'état 9
+
+
+État 6
+
+    0 $accept: S $end .
+
+    $défaut  accepter
+
+
+État 7
+
+    3 E: E '+' . E
+
+    INT  décalage et aller à l'état 1
+    '('  décalage et aller à l'état 2
+
+    E  aller à l'état 10
+
+
+État 8
+
+    2 E: E '*' . E
+
+    INT  décalage et aller à l'état 1
+    '('  décalage et aller à l'état 2
+
+    E  aller à l'état 11
+
+
+État 9
+
+    4 E: '(' E ')' .
+
+    $défaut  réduction par utilisation de la règle 4 (E)
+
+
+État 10
+
+    2 E: E . '*' E
+    3  | E . '+' E
+    3  | E '+' E .
+
+    '*'  décalage et aller à l'état 8
+
+    $défaut  réduction par utilisation de la règle 3 (E)
+
+
+État 11
+
+    2 E: E . '*' E
+    2  | E '*' E .
+    3  | E . '+' E
+
+    $défaut  réduction par utilisation de la règle 2 (E)

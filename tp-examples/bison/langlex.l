@@ -13,10 +13,10 @@ DIG	[0-9]
 "false"	{ return FALSE; }
 
 ":="	{ return ASSIGN; }
-"^"	{ return XOR; }
+"^"	    { return XOR; }
 "||"	{ return OR; }
 "&&"	{ return AND; }
-"!"	{ return NOT; }
+"!"	    { return NOT; }
 
 [a-z_][a-z0-9_]* { yylval.i = strdup(yytext); return IDENT; }
 
