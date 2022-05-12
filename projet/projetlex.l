@@ -19,7 +19,7 @@ DIG	[0-9]
 "reach" { return REACH; }
 "skip"  { return SKIP; }
 
-{DIG}+  {/* TODO TODO TODO */ return INT; }
+{DIG}+  { yylval.e = make_expr(Int,atoi(yytext),NULL,NULL,NULL); return INT; }
 
 
 "->"    { return ALORS; }
@@ -37,7 +37,7 @@ DIG	[0-9]
 "-"     { return MOINS; }
 "*"     { return FOIS; }
 [a-z_][a-z0-9_]* { yylval.i = strdup(yytext); return IDENT; }
-"//".*"\n"  { /* commentaire */}
+"//".*"\n"  { /* commentaire, ignorer */}
 [	 \n]   { /* ignore */ }
 
 .	{ return *yytext; }

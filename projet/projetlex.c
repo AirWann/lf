@@ -813,7 +813,7 @@ YY_RULE_SETUP
 case 11:
 YY_RULE_SETUP
 #line 22 "projetlex.l"
-{/* TODO TODO TODO */ return INT; }
+{ yylval.e = make_expr(Int,atoi(yytext),NULL,NULL,NULL); return INT; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
@@ -894,7 +894,7 @@ case 27:
 /* rule 27 can match eol */
 YY_RULE_SETUP
 #line 40 "projetlex.l"
-{ /* commentaire */}
+{ /* commentaire, ignorer */}
 	YY_BREAK
 case 28:
 /* rule 28 can match eol */

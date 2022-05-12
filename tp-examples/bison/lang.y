@@ -106,7 +106,6 @@ stmt* make_stmt (int type, var *var, expr *expr,
 %}
 
 /****************************************************************************/
-
 /* types used by terminals and non-terminals */
 
 %union {
