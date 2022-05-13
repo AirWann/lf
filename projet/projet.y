@@ -18,22 +18,26 @@ void yyerror(char *s)
 /***************************************************************************/
 /* Data structures for storing a programme.                                */
 
-typedef struct var	// a variable
+typedef struct var	// une variable
 {
 	char *nom;
 	int valeur;
-    struct var *next;
 } var;
 
+typedef struct varlist // liste de variables
+{
+    var *var;
+    struct varlist *next;
+} varlist;
 
-typedef struct expr	//expression
+typedef struct expr	// expression
 {
 	enum exprtyp type;          // pg,xor,or,and,not,plus,moins,fois,int,ident
 	var *var;                   // pour les ident
 	struct expr *left, *right;  // pour les binop
 } expr;
 
-typedef struct stmt	// command
+typedef struct stmt	// commande
 {
 	enum stmttyp type;	        // ASSIGN, ';', DO, IF, SKIP, BREAK
 	var *var;                   // pour assign
@@ -48,9 +52,25 @@ typedef struct choice
     stmt *commande;
 } choice;
 
-var *program_vars;
-stmt *program_stmts;
+typedef struct spec
+{
+    expr *expr;
+    struct spec *next;
+} spec;
 
+typedef struct proc
+{
+    char *name;
+    struct stmt *commande;
+    struct proc *next;
+    struct varlist *vars;
+
+} proc ;
+
+
+varlist *program_vars;
+proc *program_procs;
+spec *program_specs;
 /* fonction pour créer les structures pendant qu'on parse */
 
 var* make_id (char *s)
@@ -58,6 +78,7 @@ var* make_id (char *s)
     var *v = malloc(sizeof(var));
     v->nom = s;
     v->valeur = 0;
+    return v;
 }
 
 var* find_id (char *s)
@@ -95,6 +116,25 @@ choice* make_choice (choicetyp type, expr *cond, stmt *commande)
     c->type = type;
     c->cond = cond;
     c->commande = commande;
+    return c;
+}
+
+spec* make_spec (expr *expr)
+{
+    spec *sp = malloc(sizeof(spec));
+    sp->expr = expr;
+    sp->next = NULL;
+    return sp;
+}
+
+proc* make_proc (char *name, varlist *vars, stmt *commande)
+{
+    proc *p = malloc(sizeof(proc));
+    p->name = name;
+    p->commande = commande;
+    p->next = NULL;
+    p->vars = vars;
+    return p;
 }
 
 %}
@@ -106,11 +146,15 @@ choice* make_choice (choicetyp type, expr *cond, stmt *commande)
     var *v;
     expr *e;
     stmt *s;
+    spec *sp;
+    proc *p;
 }
 
 %type <e> expr
 %type <s> stmt assign choice
-%type <v> declist
+%type <v> decls
+%type <sp> specs
+%type <p> procs
 
 %token VAR PROC END DO OD IF FI BREAK REACH SKIP INT ALORS PG PV V CHOIX EQUAL ASSIGN XOR OR AND NOT PLUS MOINS FOIS
 %token <i> IDENT
@@ -120,6 +164,18 @@ choice* make_choice (choicetyp type, expr *cond, stmt *commande)
 %%
 
 /* TODO grammaire */
+
+prog    : varlist procs specs                   { program_specs = $3; }
+
+procs   : %empty                                { $$ = NULL; }
+    | PROC IDENT varlist stmt END procs         { ($$ = make_proc($2,$3,$4))->next = $6; }
+
+specs   : REACH expr specs                      { ($$ = make_spec($2))->next = $3 }
+
+varlist : VAR decls PV                          { program_vars = $2; } /* TODO pas exactement ça ; si c'est local ??? */
+
+decls   : IDENT                                 { $$ = make_ident($1); }
+    | decls V IDENT                             { ($$ = make_ident($3))->next = $1; }
 
 %%
 
