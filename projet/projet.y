@@ -47,6 +47,7 @@ typedef struct choice
     enum choicetyp type;
     struct expr *cond;
     struct stmt *commande;
+    struct choice *next;
 } choice;
 
 typedef struct stmt	// commande
@@ -194,13 +195,14 @@ int print_choix(choice *choix, int dec)
                 print_expr(choix->cond);
                 printf("-> \n");
                 print_stmt(choix->commande, dec+1);
+                printf("\n");
+                print_choix(choix->next,dec);
             break;
             case Else:
-                printf("%selse : ",n_tab(dec));
+                printf("%selse -> \n",n_tab(dec));
                 print_stmt(choix->commande, dec+1);
             break;
         }
-        printf("\n");
     }
     return 0;
 }
@@ -224,13 +226,13 @@ int print_stmt(stmt *stmt, int dec)
 			case Do:
 				printf("%sdo \n",n_tab(dec));
 				print_choix(stmt->choice,dec+1);
-				printf("%sod",n_tab(dec));
+				printf("%sod\n",n_tab(dec));
 			break;
 
 			case If:
 				printf("%sif \n",n_tab(dec));
 				print_choix(stmt->choice,dec+1);
-				printf("%sfi",n_tab(dec));
+				printf("%sfi \n",n_tab(dec));
 			break;
 
 			case Skip:
@@ -249,11 +251,21 @@ int print_procs(proc *proc)
     printf("processus : %s\n", proc->name);
     printf("ses variables :");
     print_varlist(proc->vars);
-    print_stmt(proc->commande,0);
+    print_stmt(proc->commande,1);
     if (proc->next) 
     {
-        printf("\n NEXT \n");
+        printf("\nPROCESSUS SUIVANT \n");
         print_procs(proc->next);
+    }
+}
+int print_specs(spec *spec)
+{
+    if(spec)
+    {
+        printf("- ");
+        print_expr(spec->expr);
+        printf("\n");
+        print_specs(spec->next);
     }
 }
 
@@ -318,6 +330,7 @@ choice* make_choice (enum choicetyp type, expr *cond, stmt *commande)
     c->type = type;
     c->cond = cond;
     c->commande = commande;
+    c->next = NULL;
     return c;
 }
 
@@ -389,7 +402,7 @@ varlist :                                       { $$ = NULL; }
     | VAR decls PV                              { $$ = $2; } 
 
 decls   : IDENT                                 { $$ = make_vlist((make_id($1))); }
-    | IDENT V decls                             { $$ = (make_vlist((make_id($1))))->next = $3; }
+    | decls V IDENT                             { ($$ = make_vlist((make_id($3))))->next = $1; }
 
 stmt    : assign                                
     | stmt PV stmt                              { $$ = make_stmt(Pv, NULL, NULL, $3, $1, NULL); }
@@ -402,7 +415,7 @@ assign  : IDENT ASSIGN expr                     { $$ = make_stmt(Assign,make_id(
 
 choix   : CHOIX expr ALORS stmt                 { $$ = make_choice(Choice,$2,$4); }
     | CHOIX ELSE ALORS stmt                     { $$ = make_choice(Else,NULL,$4); }
-    | CHOIX expr ALORS stmt choix               { $$ = make_choice(Choice,$2,$4); }
+    | CHOIX expr ALORS stmt choix               { ($$ = make_choice(Choice,$2,$4))->next = $5; }
 
 expr    : IDENT                                 { $$ = make_expr(Ident, 0, make_id($1), NULL, NULL); }
     | expr XOR expr                             { $$ = make_expr(Xor, 0, NULL, $1, $3); }
@@ -428,8 +441,11 @@ int main (int argc, char **argv)
 	if (argc <= 1) { yyerror("no file specified"); exit(1); }
 	yyin = fopen(argv[1],"r");
     yyparse();
-    printf("variables globales : \n");
+    printf("VARIABLES GLOBALES : \n");
     print_varlist(program_vars);
+    printf("\nPROCESSUS :\n");
     print_procs(program_procs);
     printf("\n");
+    printf("SPECIFICATIONS : \n");
+    print_specs(program_specs);
 }
