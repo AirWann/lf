@@ -10,7 +10,8 @@ Après avoir écrit un lexer qui repère les mots-clés (ou symboles-clés) du l
 Nous avons ensuite mis en place un _"pretty print"_. Il inclut l'affchage des variables (sous forme naturelle de liste chaînée) globales, des processus (avec leurs variables locales), et des spécifications. \
 _Le pretty print est fait à partir des données générées par le parser et non durant la lecture._ \
 Afin de représenter la structure d'arbre, nous utilisons des tabulations pour représenter la profondeur.
-![image](https://user-images.githubusercontent.com/93213861/168488774-7b967375-8178-421c-b429-fe3b6aeabb1c.png)
+![image](https://user-images.githubusercontent.com/93213861/168490459-60988f49-8efb-47d7-b2f4-9f502a434361.png)
+
 
 
 ### Pistes pour la suite
