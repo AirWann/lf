@@ -86,7 +86,7 @@ var* make_id (char *s)
     v->valeur = 0;
     return v;
 }
-varlist* make_varlist (var *v)
+varlist* make_vlist (var *v)
 {
     varlist *vl = malloc(sizeof(varlist));
     vl->var = v;
@@ -175,12 +175,18 @@ proc* make_proc (char *name, varlist *vars, stmt *commande)
 %token VAR PROC END DO OD IF FI BREAK REACH SKIP ALORS ELSE PG PV V CHOIX EGAL ASSIGN XOR OR AND NOT PLUS MOINS FOIS 
 %token <i> IDENT
 %token <e> INT
-/* TODO priorités */
+
+
+%left PV
+%left EGAL PG PLUS MOINS FOIS 
+%left OR XOR
+%left AND
+%right NOT
+
 
 %start prog
 %%
 
-/* TODO grammaire */
 
 prog    : varlist procs specs                   { program_vars = $1; program_procs = $2; program_specs = $3; }
 
@@ -192,8 +198,8 @@ specs   :                                   { $$ =NULL; }
 
 varlist : VAR decls PV                          { $$ = $2; } 
 
-decls   : IDENT                                 { $$ = make_varlist(make_id($1)); }
-    | decls V IDENT                             { $$ = (make_varlist(make_id($3)))->next = $1; }
+decls   : IDENT                                 { $$ = make_vlist((make_id($1))); }
+    | decls V IDENT                             { $$ = (make_vlist((make_id($3))))->next = $1; }
 
 stmt    : assign                                
     | stmt PV stmt                              { $$ = make_stmt(Pv, NULL, NULL, $1, $3, NULL); }
