@@ -3,7 +3,7 @@
 ## Maena QUEMENER & Erwann LOULERGUE
 
 ### Travail effectué
-Nous avons atteint le niveau 1. Nous avons donc implémenté une grammaire, d'abord sur papier avant de la transcrire dans bison. Cela a constitué le gros du travail, et était assez fastidieux. Nous avons ensuite mis en place un _"pretty print"_ des variables (sous forme naturelle de liste chaînée), des processus (la profondeur de l'arbre étant représentée par des tabulations), et des spécifications. \
+Nous avons atteint le niveau 1. Nous avons donc implémenté une grammaire, d'abord sur papier avant de la transcrire dans bison. Cela a constitué le gros du travail, et était assez fastidieux. Nous avons ensuite mis en place un _"pretty print"_ des variables (sous forme naturelle de liste chaînée), des processus, et des spécifications. \
 _Le pretty print est fait à partir des données générées par le parser et non durant la lecture._ \
 Afin de représenter la structure d'arbre, nous utilisons des tabulations pour représenter la profondeur.
 ![image](https://user-images.githubusercontent.com/93213861/168488774-7b967375-8178-421c-b429-fe3b6aeabb1c.png)
