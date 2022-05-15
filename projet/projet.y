@@ -79,6 +79,110 @@ proc *program_procs;
 spec *program_specs;
 /* fonction pour créer les structures pendant qu'on parse */
 
+int print_var(var *var) {
+	if(var != NULL){
+		printf("%s",var->nom);
+	} else printf(" nil ");
+	return 0;
+}
+
+int print_varlist(varlist *vl)
+{
+    printf("[");
+    while (vl)
+    {
+        print_var(vl->var);
+        printf(",");
+        vl = vl->next;
+    }
+    printf("]");
+    printf("\n");
+}
+
+
+int print_expr(expr *expr) 
+{
+	if(expr != NULL){
+		switch (expr->type)
+		{
+			case Ident:
+				printf("%s", expr->var->nom);
+			break;
+
+			case Int:
+				printf("%d", expr->valeur);
+			break;
+
+			case Or:
+				print_expr(expr->left);
+				printf(" || ");
+				print_expr(expr->right);
+			break;
+
+			case And:
+				print_expr(expr->left);
+				printf(" && ");
+				print_expr(expr->right);
+			break;
+
+			case Xor:
+				print_expr(expr->left);
+				printf(" ^ ");
+				print_expr(expr->right);
+			break;
+
+			case Pg:
+				print_expr(expr->left);
+				printf(" > ");
+				print_expr(expr->right);
+			break;
+
+			case Egal:
+				print_expr(expr->left);
+				printf(" == ");
+				print_expr(expr->right);
+			break;
+
+			case Plus:
+				print_expr(expr->left);
+				printf(" + ");
+				print_expr(expr->right);
+			break;
+
+			case Moins:
+				print_expr(expr->left);
+				printf(" - ");
+				print_expr(expr->right);
+			break;
+
+			case Fois:
+				print_expr(expr->left);
+				printf(" * ");
+				print_expr(expr->right);
+			break;
+
+			case Not:
+				printf("~");
+				print_expr(expr->left);
+			break;
+		}
+	}	
+	return 0;
+}
+
+int print_procs(proc *proc) 
+{
+    printf("processus : %s\n", proc->name);
+    printf("ses variables :");
+    print_varlist(proc->vars);
+    /* print_stmt(proc->commande); */
+    if (proc->next) 
+    {
+        printf("\n NEXT \n");
+        print_procs(proc->next);
+    }
+}
+
 var* make_id (char *s)
 {
     var *v = malloc(sizeof(var));
@@ -96,8 +200,15 @@ varlist* make_vlist (var *v)
 var* find_id (char *s)
 {
     varlist *v = program_vars;
+    printf("on cherche %s\n",s);
     while (v && strcmp(v->var->nom,s)) v=v->next;
-    if (!v) {yyerror("variable inconnue"); exit(1);}
+    if (!v) 
+    {
+        printf("%s pas trouvée dans :",s);
+        printf("\n");
+        print_varlist(program_vars);
+        yyerror("variable inconnue"); exit(1);
+     }
     return v->var;
 }
 
@@ -163,12 +274,13 @@ proc* make_proc (char *name, varlist *vars, stmt *commande)
     stmt *s;
     spec *sp;
     proc *p;
+    choice *c;
 }
 
 %type <e> expr
-%type <s> stmt assign choix
-%type <v> decls
-%type <vl> varlist
+%type <s> stmt assign
+%type <c> choix
+%type <vl> varlist decls
 %type <sp> specs
 %type <p> procs
 
@@ -193,10 +305,11 @@ prog    : varlist procs specs                   { program_vars = $1; program_pro
 procs   :                                       { $$ = NULL; }
     | PROC IDENT varlist stmt END procs         { ($$ = make_proc($2,$3,$4))->next = $6; }
 
-specs   :                                   { $$ =NULL; }
-    | REACH expr specs                      { ($$ = make_spec($2))->next = $3; }
+specs   :                                       { $$ =NULL; }
+    | REACH expr specs                          { ($$ = make_spec($2))->next = $3; }
 
-varlist : VAR decls PV                          { $$ = $2; } 
+varlist :                                       { $$ = NULL; }
+    | VAR decls PV                              { $$ = $2; } 
 
 decls   : IDENT                                 { $$ = make_vlist((make_id($1))); }
     | decls V IDENT                             { $$ = (make_vlist((make_id($3))))->next = $1; }
@@ -208,13 +321,13 @@ stmt    : assign
     | SKIP                                      { $$ = make_stmt(Skip, NULL, NULL, NULL, NULL, NULL); }
     | BREAK                                     { $$ = make_stmt(Break, NULL, NULL, NULL, NULL, NULL); }
 
-assign  : IDENT ASSIGN expr                     { $$ = make_stmt(Assign,find_id($1),$3, NULL, NULL, NULL); }
+assign  : IDENT ASSIGN expr                     { $$ = make_stmt(Assign,make_id($1),$3, NULL, NULL, NULL); }
 
 choix   : CHOIX expr ALORS stmt                 { $$ = make_choice(Choice,$2,$4); }
     | CHOIX ELSE ALORS stmt                     { $$ = make_choice(Else,NULL,$4); }
     | CHOIX expr ALORS stmt choix               { $$ = make_choice(Choice,$2,$4); }
 
-expr    : IDENT                                 { $$ = make_expr(Ident, 0, find_id($1), NULL, NULL); }
+expr    : IDENT                                 { $$ = make_expr(Ident, 0, make_id($1), NULL, NULL); }
     | expr XOR expr                             { $$ = make_expr(Xor, 0, NULL, $1, $3); }
     | expr OR expr                              { $$ = make_expr(Or, 0, NULL, $1, $3); }
     | expr AND expr                             { $$ = make_expr(And, 0, NULL, $1, $3); }
@@ -237,4 +350,8 @@ int main (int argc, char **argv)
 {
 	if (argc <= 1) { yyerror("no file specified"); exit(1); }
 	yyin = fopen(argv[1],"r");
+    yyparse();
+    printf("variables globales : \n");
+    print_varlist(program_vars);
+    print_procs(program_procs);
 }
