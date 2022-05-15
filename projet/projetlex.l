@@ -18,8 +18,8 @@ DIG	[0-9]
 "break" { return BREAK; }
 "reach" { return REACH; }
 "skip"  { return SKIP; }
-
-{DIG}+  { yylval.e = make_expr(Int,atoi(yytext),NULL,NULL,NULL); return INT; }
+"else"  { return ELSE; }
+{DIG}+  { yylval.e = make_expr(Int,atoi(yytext),NULL,NULL, NULL); return INT; }
 
 
 "->"    { return ALORS; }
@@ -27,7 +27,7 @@ DIG	[0-9]
 ";"     { return PV; }
 ","     { return V;}
 "::"    { return CHOIX;}
-"=="    { return EQUAL; }
+"=="    { return EGAL; }
 ":="	{ return ASSIGN; }
 "^"	    { return XOR; }
 "||"	{ return OR; }

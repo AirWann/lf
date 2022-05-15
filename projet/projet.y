@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum exprtyp {Pg,Xor,Or,And,Not,Plus,Moins,Fois,Int,Ident};
-enum stmttyp {Assign, Pv, Do, If, Skip, Break};
-enum choicetyp {Choice, Else}
+
 int yylex();
 
 void yyerror(char *s)
@@ -17,6 +15,11 @@ void yyerror(char *s)
 
 /***************************************************************************/
 /* Data structures for storing a programme.                                */
+
+
+typedef enum exprtyp {Pg,Xor,Or,And,Not,Plus,Moins,Fois,Int,Ident,Egal} exprtyp;
+typedef enum stmttyp {Assign, Pv, Do, If, Skip, Break} stmttyp;
+typedef enum choicetyp {Choice, Else} choicetyp;
 
 typedef struct var	// une variable
 {
@@ -33,28 +36,31 @@ typedef struct varlist // liste de variables
 typedef struct expr	// expression
 {
 	enum exprtyp type;          // pg,xor,or,and,not,plus,moins,fois,int,ident
+    int valeur;
 	var *var;                   // pour les ident
 	struct expr *left, *right;  // pour les binop
 } expr;
 
-typedef struct stmt	// commande
-{
-	enum stmttyp type;	        // ASSIGN, ';', DO, IF, SKIP, BREAK
-	var *var;                   // pour assign
-	expr *expr;                 // pour assign, if, when
-	struct stmt *left, *right;  // pour when, ;
-} stmt;
 
 typedef struct choice
 {
     enum choicetyp type;
-    expr *cond;
-    stmt *commande;
+    struct expr *cond;
+    struct stmt *commande;
 } choice;
+
+typedef struct stmt	// commande
+{
+	enum stmttyp type;	        // ASSIGN, ';', DO, IF, SKIP, BREAK
+	struct var *var;            // pour assign
+	struct expr *expr;          // pour assign, if, when
+	struct stmt *left, *right;  // pour when, ;
+    struct choice *choice;
+} stmt;
 
 typedef struct spec
 {
-    expr *expr;
+    struct expr *expr;
     struct spec *next;
 } spec;
 
@@ -80,26 +86,33 @@ var* make_id (char *s)
     v->valeur = 0;
     return v;
 }
-
+varlist* make_varlist (var *v)
+{
+    varlist *vl = malloc(sizeof(varlist));
+    vl->var = v;
+    vl->next = NULL;
+    return vl;
+}
 var* find_id (char *s)
 {
-    var *v = program_vars;
-    while (v && strcmp(v->name,s)) v=v->next;
+    varlist *v = program_vars;
+    while (v && strcmp(v->var->nom,s)) v=v->next;
     if (!v) {yyerror("variable inconnue"); exit(1);}
-    return v;
+    return v->var;
 }
 
-expr* make_expr (exprtyp type, var *var, expr *left, expr *right)
+expr* make_expr (enum exprtyp type, int n, var *var, expr *left, expr *right)
 {
     expr *e = malloc(sizeof(expr));
     e->type = type;
+    e->valeur = n;
     e->var = var;
     e->left = left;
     e->right = right;
     return e;
 }
 
-stmt* make_stmt (stmttyp type, var *var, expr *expr, stmt *right, stmt *left)
+stmt* make_stmt (enum stmttyp type, var *var, expr *expr, stmt *right, stmt *left, choice *choice)
 {
     stmt *s = malloc(sizeof(stmt));
 	s->type = type;
@@ -107,10 +120,11 @@ stmt* make_stmt (stmttyp type, var *var, expr *expr, stmt *right, stmt *left)
 	s->expr = expr;
 	s->left = left;
 	s->right = right;
+    s->choice = choice;
 	return s;
 }
 
-choice* make_choice (choicetyp type, expr *cond, stmt *commande)
+choice* make_choice (enum choicetyp type, expr *cond, stmt *commande)
 {
     choice *c = malloc(sizeof(choice));
     c->type = type;
@@ -144,6 +158,7 @@ proc* make_proc (char *name, varlist *vars, stmt *commande)
 %union {
     char *i;
     var *v;
+    varlist *vl;
     expr *e;
     stmt *s;
     spec *sp;
@@ -151,56 +166,69 @@ proc* make_proc (char *name, varlist *vars, stmt *commande)
 }
 
 %type <e> expr
-%type <s> stmt assign choice
+%type <s> stmt assign choix
 %type <v> decls
+%type <vl> varlist
 %type <sp> specs
 %type <p> procs
 
-%token VAR PROC END DO OD IF FI BREAK REACH SKIP INT ALORS PG PV V CHOIX EQUAL ASSIGN XOR OR AND NOT PLUS MOINS FOIS
+%token VAR PROC END DO OD IF FI BREAK REACH SKIP ALORS ELSE PG PV V CHOIX EGAL ASSIGN XOR OR AND NOT PLUS MOINS FOIS 
 %token <i> IDENT
-
+%token <e> INT
 /* TODO priorités */
 
+%start prog
 %%
 
 /* TODO grammaire */
 
-prog    : varlist procs specs                   { program_specs = $3; }
+prog    : varlist procs specs                   { program_vars = $1; program_procs = $2; program_specs = $3; }
 
-procs   : %empty                                { $$ = NULL; }
+procs   :                                       { $$ = NULL; }
     | PROC IDENT varlist stmt END procs         { ($$ = make_proc($2,$3,$4))->next = $6; }
 
-specs   : REACH expr specs                      { ($$ = make_spec($2))->next = $3 }
+specs   :                                   { $$ =NULL; }
+    | REACH expr specs                      { ($$ = make_spec($2))->next = $3; }
 
-varlist : VAR decls PV                          { program_vars = $2; } /* TODO pas exactement ça ; si c'est local ??? */
+varlist : VAR decls PV                          { $$ = $2; } 
 
-decls   : IDENT                                 { $$ = make_ident($1); }
-    | decls V IDENT                             { ($$ = make_ident($3))->next = $1; }
+decls   : IDENT                                 { $$ = make_varlist(make_id($1)); }
+    | decls V IDENT                             { $$ = (make_varlist(make_id($3)))->next = $1; }
+
+stmt    : assign                                
+    | stmt PV stmt                              { $$ = make_stmt(Pv, NULL, NULL, $1, $3, NULL); }
+    | DO choix OD                               { $$ = make_stmt(Do, NULL, NULL, NULL, NULL, $2); }
+    | IF choix FI                               { $$ = make_stmt(If, NULL, NULL, NULL, NULL, $2); }
+    | SKIP                                      { $$ = make_stmt(Skip, NULL, NULL, NULL, NULL, NULL); }
+    | BREAK                                     { $$ = make_stmt(Break, NULL, NULL, NULL, NULL, NULL); }
+
+assign  : IDENT ASSIGN expr                     { $$ = make_stmt(Assign,find_id($1),$3, NULL, NULL, NULL); }
+
+choix   : CHOIX expr ALORS stmt                 { $$ = make_choice(Choice,$2,$4); }
+    | CHOIX ELSE ALORS stmt                     { $$ = make_choice(Else,NULL,$4); }
+    | CHOIX expr ALORS stmt choix               { $$ = make_choice(Choice,$2,$4); }
+
+expr    : IDENT                                 { $$ = make_expr(Ident, 0, find_id($1), NULL, NULL); }
+    | expr XOR expr                             { $$ = make_expr(Xor, 0, NULL, $1, $3); }
+    | expr OR expr                              { $$ = make_expr(Or, 0, NULL, $1, $3); }
+    | expr AND expr                             { $$ = make_expr(And, 0, NULL, $1, $3); }
+    | NOT expr                                  { $$ = make_expr(Not, 0, NULL, $2, NULL); }
+    | expr PLUS expr                            { $$ = make_expr(Plus, 0, NULL, $1, $3); }
+    | expr MOINS expr                           { $$ = make_expr(Moins, 0, NULL, $1, $3); }
+    | expr FOIS expr                            { $$ = make_expr(Fois, 0, NULL, $1, $3); }
+    | expr PG expr                              { $$ = make_expr(Pg, 0, NULL, $1, $3); }
+    | expr EGAL expr                            { $$ = make_expr(Egal, 0, NULL, $1, $3); }
+    | '(' expr ')'                              { $$ = $2; }
+    | INT                                       { $$ = $1; }
 
 %%
 
 #include "projetlex.c"
 
-int eval (expr *e)
-{
-    /* switch (e->type)
-    {
 
-    } */
-    return 0;
-}
-
-void execute (stmt *s)
-{
-    /* switch (s->type)
-    {
-        /* blabla selon les types de statement 
-    } */
-}
 
 int main (int argc, char **argv)
 {
 	if (argc <= 1) { yyerror("no file specified"); exit(1); }
 	yyin = fopen(argv[1],"r");
-	if (!yyparse()) execute(program_stmts);
 }
