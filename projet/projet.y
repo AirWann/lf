@@ -169,19 +169,96 @@ int print_expr(expr *expr)
 	}	
 	return 0;
 }
+char* n_tab(int n) 
+{
+	if (n == 0) {return "";} else {
+	int fullsize = n * strlen("  ") + 1;
+	char* fullword;
+	fullword = (char *) malloc( fullsize );
+    strcpy( fullword, "" );
+	strcat(fullword,"  ");
+	strcat(fullword,n_tab(n-1));
+	fullword;
+	}
+	
+}
+int print_stmt(stmt *stmt, int dec);
+int print_choix(choice *choix, int dec)
+{
+    if(choix)
+    {
+        switch (choix->type)
+        {
+            case Choice:
+                printf("%ssi ",n_tab(dec));
+                print_expr(choix->cond);
+                printf("-> \n");
+                print_stmt(choix->commande, dec+1);
+            break;
+            case Else:
+                printf("%selse : ",n_tab(dec));
+                print_stmt(choix->commande, dec+1);
+            break;
+        }
+        printf("\n");
+    }
+    return 0;
+}
+int print_stmt(stmt *stmt, int dec) 
+{
+	if(stmt)
+    {
+		switch (stmt->type)
+        {
+			case Assign:
+				printf("%s%s := ",n_tab(dec),stmt->var->nom);
+				print_expr(stmt->expr);
+			break;
 
+			case Pv:
+				print_stmt(stmt->left,dec);
+				printf(";\n");
+				print_stmt(stmt->right,dec);
+			break;	
+
+			case Do:
+				printf("%sdo \n",n_tab(dec));
+				print_choix(stmt->choice,dec+1);
+				printf("%sod",n_tab(dec));
+			break;
+
+			case If:
+				printf("%sif \n",n_tab(dec));
+				print_choix(stmt->choice,dec+1);
+				printf("%sfi",n_tab(dec));
+			break;
+
+			case Skip:
+				printf("%sskip",n_tab(dec));
+			break;
+
+			case Break:
+				printf("%sbreak",n_tab(dec));
+			break;
+		}
+	}
+	return 0;
+}
 int print_procs(proc *proc) 
 {
     printf("processus : %s\n", proc->name);
     printf("ses variables :");
     print_varlist(proc->vars);
-    /* print_stmt(proc->commande); */
+    print_stmt(proc->commande,0);
     if (proc->next) 
     {
         printf("\n NEXT \n");
         print_procs(proc->next);
     }
 }
+
+
+
 
 var* make_id (char *s)
 {
@@ -312,10 +389,10 @@ varlist :                                       { $$ = NULL; }
     | VAR decls PV                              { $$ = $2; } 
 
 decls   : IDENT                                 { $$ = make_vlist((make_id($1))); }
-    | decls V IDENT                             { $$ = (make_vlist((make_id($3))))->next = $1; }
+    | IDENT V decls                             { $$ = (make_vlist((make_id($1))))->next = $3; }
 
 stmt    : assign                                
-    | stmt PV stmt                              { $$ = make_stmt(Pv, NULL, NULL, $1, $3, NULL); }
+    | stmt PV stmt                              { $$ = make_stmt(Pv, NULL, NULL, $3, $1, NULL); }
     | DO choix OD                               { $$ = make_stmt(Do, NULL, NULL, NULL, NULL, $2); }
     | IF choix FI                               { $$ = make_stmt(If, NULL, NULL, NULL, NULL, $2); }
     | SKIP                                      { $$ = make_stmt(Skip, NULL, NULL, NULL, NULL, NULL); }
@@ -354,4 +431,5 @@ int main (int argc, char **argv)
     printf("variables globales : \n");
     print_varlist(program_vars);
     print_procs(program_procs);
+    printf("\n");
 }
