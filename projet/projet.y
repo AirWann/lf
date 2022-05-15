@@ -226,13 +226,13 @@ int print_stmt(stmt *stmt, int dec)
 			case Do:
 				printf("%sdo \n",n_tab(dec));
 				print_choix(stmt->choice,dec+1);
-				printf("%sod\n",n_tab(dec));
+				printf("\n%sod",n_tab(dec));
 			break;
 
 			case If:
 				printf("%sif \n",n_tab(dec));
 				print_choix(stmt->choice,dec+1);
-				printf("%sfi \n",n_tab(dec));
+				printf("%sfi",n_tab(dec));
 			break;
 
 			case Skip:
