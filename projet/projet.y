@@ -351,7 +351,16 @@ proc* make_proc (char *name, varlist *vars, stmt *commande)
     p->vars = vars;
     return p;
 }
-
+void chain(varlist *vl1, varlist *vl2)
+{
+    if(vl1->next == NULL)
+    {
+        vl1->next = vl2;
+    } else
+    {
+        chain(vl1->next,vl2);
+    }
+}
 %}
 
 /* types pour le yylval */
@@ -370,7 +379,7 @@ proc* make_proc (char *name, varlist *vars, stmt *commande)
 %type <e> expr
 %type <s> stmt assign
 %type <c> choix
-%type <vl> varlist decls
+%type <vl> varlist decls declist
 %type <sp> specs
 %type <p> procs
 
@@ -399,7 +408,9 @@ specs   :                                       { $$ =NULL; }
     | REACH expr specs                          { ($$ = make_spec($2))->next = $3; }
 
 varlist :                                       { $$ = NULL; }
-    | VAR decls PV                              { $$ = $2; } 
+    | declist varlist                           { chain($1,$2); $$=$1; } 
+
+declist : VAR decls PV                          { $$ = $2; }
 
 decls   : IDENT                                 { $$ = make_vlist((make_id($1))); }
     | decls V IDENT                             { ($$ = make_vlist((make_id($3))))->next = $1; }
